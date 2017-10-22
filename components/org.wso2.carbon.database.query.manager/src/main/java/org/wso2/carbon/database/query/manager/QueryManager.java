@@ -20,57 +20,58 @@ package org.wso2.carbon.database.query.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import org.wso2.carbon.config.ConfigurationException;
+import org.wso2.carbon.config.provider.ConfigProvider;
+import org.wso2.carbon.database.query.manager.config.Component;
+import org.wso2.carbon.database.query.manager.config.ComponentChildConfiguration;
+import org.wso2.carbon.database.query.manager.config.Database;
+import org.wso2.carbon.database.query.manager.config.RootConfiguration;
+import org.wso2.carbon.database.query.manager.internal.DataHolder;
+import org.wso2.carbon.database.query.manager.util.DatabaseMetaData;
+import org.wso2.carbon.database.query.manager.util.DatabaseQueryConfig;
 
 /**
  * Holds the database queries.
  */
 public class QueryManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(QueryManager.class);
-    private final String QUERIES = "queries";
-    private Map<String, String> queries = null;
 
-    public QueryManager(String componentNamespace) {
-        this.queries = readConfigs(componentNamespace);
+    public QueryConfigReader init(String componentName, DatabaseMetaData databaseMetaData,
+                                  DatabaseQueryConfig defaultDatabaseQueryConfig) {
+        DatabaseQueryConfig baseDatabaseQueryConfig = mergeConfigs(componentName,
+                defaultDatabaseQueryConfig);
+        return new QueryConfigReader(baseDatabaseQueryConfig, databaseMetaData);
     }
 
-    private Map<String, String> readConfigs(String componentNamespace) {
-        String databaseType = null;
-        try {
-            Map<String, Object> configs = (Map<String, Object>) DataHolder.getInstance()
-                    .getConfigProvider().getConfigurationObject(componentNamespace);
-            if (null != configs) {
-                if (configs.containsKey(QUERIES) && null != configs.get(QUERIES)) {
-                    Map databaseTypes = (Map) configs.get(QUERIES);
-                    Iterator iterator = databaseTypes.keySet().iterator();
-                    while(iterator.hasNext()) {
-                        databaseType = (String) iterator.next();
+    private DatabaseQueryConfig mergeConfigs(String componentNamespace, DatabaseQueryConfig databaseQueryConfig) {
+        ConfigProvider configProvider = DataHolder.getInstance().getConfigProvider();
+        if (configProvider != null) {
+            try {
+                RootConfiguration rootConfiguration = configProvider.getConfigurationObject(RootConfiguration.class);
+                if (null != rootConfiguration && null != rootConfiguration.components) {
+                    for (Component component : rootConfiguration.components) {
+                        ComponentChildConfiguration componentChildConfiguration = component.getComponent();
+                        if (null != componentChildConfiguration && null != componentChildConfiguration.getName()
+                                && componentChildConfiguration.getName().equals(componentNamespace) &&
+                                componentChildConfiguration.getDatabases() != null
+                                ) {
+                            for (Database database : componentChildConfiguration.getDatabases()) {
+                                if (database.getDatabase().getQueries() != null) {
+                                    DatabaseMetaData databaseMetaDataTemp = new DatabaseMetaData();
+                                    databaseMetaDataTemp.setName(database.getDatabase().getName());
+                                    databaseMetaDataTemp.setVersion(database.getDatabase().getVersion());
+                                    databaseQueryConfig.setQueries(databaseMetaDataTemp,
+                                            database.getDatabase().getQueries());
+                                }
+                            }
+
+                        }
                     }
-                    if (null != databaseTypes && databaseTypes.containsKey(databaseType)) {
-                        Map dbQueries = (Map<String, String>) databaseTypes.get(databaseType);
-                        return (null != dbQueries) ? dbQueries : new HashMap<>();
-                    } else {
-                        throw new RuntimeException("No database type available");
-                    }
-                } else {
-                    throw new RuntimeException("Unable to find database queries in the deployment.yaml");
                 }
+            } catch (ConfigurationException e) {
+                LOGGER.error(e.getMessage(), e);
             }
-
-        } catch (Exception e) {
-            LOGGER.error("Failed to read deployment.yaml file due to " + e.getMessage(), e);
         }
-
-        return new HashMap<>();
-    }
-
-    public String getQuery(String key) {
-        if (!this.queries.containsKey(key)) {
-            throw new RuntimeException("Unable to find the configuration entry for the key: " + key);
-        }
-        return this.queries.get(key);
+        return databaseQueryConfig;
     }
 }
