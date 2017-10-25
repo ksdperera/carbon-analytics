@@ -28,8 +28,8 @@ import java.util.Map;
  */
 @Configuration(description = "Database configuration")
 public class DatabaseChildConfiguration {
-    @Element(description = "Database name")
-    private String name = "";
+    @Element(description = "Database type")
+    private String type = "";
 
     @Element(description = "Database version")
     private String version = "";
@@ -37,8 +37,8 @@ public class DatabaseChildConfiguration {
     @Element(description = "Database Query Map", required = true)
     private Map<String, String> queries;
 
-    public String getName() {
-        return name;
+    public String getType() {
+        return type;
     }
 
     public String getVersion() {

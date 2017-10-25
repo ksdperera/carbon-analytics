@@ -40,12 +40,13 @@ public class QueryProvider {
 
     public QueryConfigReader init(String componentName, DatabaseMetaData databaseMetaData,
                                   DatabaseQueryConfig defaultDatabaseQueryConfig) {
-        DatabaseQueryConfig baseDatabaseQueryConfig = mergeConfigs(componentName,
+        Map<String, String> baseDatabaseQueryConfig = mergeConfigs(componentName, databaseMetaData,
                 defaultDatabaseQueryConfig);
         return new QueryConfigReader(baseDatabaseQueryConfig, databaseMetaData);
     }
 
-    private Map<String, Object> mergeConfigs(String componentNamespace, DatabaseQueryConfig databaseQueryConfig) {
+    private Map<String, String> mergeConfigs(String componentNamespace, DatabaseMetaData databaseMetaData,
+                                             DatabaseQueryConfig databaseQueryConfig) {
         ConfigProvider configProvider = DataHolder.getInstance().getConfigProvider();
         if (configProvider != null) {
             try {
@@ -74,6 +75,6 @@ public class QueryProvider {
                 LOGGER.error(e.getMessage(), e);
             }
         }
-        return databaseQueryConfig;
+        return databaseQueryConfig.getQueries(databaseMetaData);
     }
 }

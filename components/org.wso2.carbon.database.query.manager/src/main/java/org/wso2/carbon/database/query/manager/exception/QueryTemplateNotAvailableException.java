@@ -21,16 +21,16 @@ package org.wso2.carbon.database.query.manager.exception;
 /**
  * Created by sajithd on 10/23/17.
  */
-public class QueryTemplateNotFoundException extends Exception {
-    public QueryTemplateNotFoundException(String message) {
+public class QueryTemplateNotAvailableException extends Exception {
+    public QueryTemplateNotAvailableException(String message) {
         super(message);
     }
 
-    public QueryTemplateNotFoundException(String message, Throwable cause) {
+    public QueryTemplateNotAvailableException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public QueryTemplateNotFoundException(Throwable cause) {
+    public QueryTemplateNotAvailableException(Throwable cause) {
         super(cause);
     }
 }
