@@ -48,6 +48,9 @@ import javax.management.JMX;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
+import java.nio.file.Paths;
+
+import static org.wso2.carbon.container.options.CarbonDistributionOption.carbonDistribution;
 
 /**
  * SiddhiAsAPI Metrics Tests.
@@ -93,6 +96,9 @@ public class SiddhiMetricsTestcase {
     @Configuration
     public Option[] createConfiguration() {
         return new Option[]{
+                carbonDistribution(
+                        Paths.get("target", "wso2das-" + System.getProperty("carbon.analytic.version")),
+                        "worker")
         };
     }
 

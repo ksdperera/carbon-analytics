@@ -33,11 +33,12 @@ import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.exception.CannotRestoreSiddhiAppStateException;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import javax.inject.Inject;
 
+import static org.wso2.carbon.container.options.CarbonDistributionOption.carbonDistribution;
 import static org.wso2.carbon.container.options.CarbonDistributionOption.copyFile;
 
 @Listeners(PaxExam.class)
@@ -71,7 +72,10 @@ public class FileSystemPersistenceStoreTestIT {
     @Configuration
     public Option[] createConfiguration() {
         return new Option[]{
-                copyCarbonYAMLOption()
+                copyCarbonYAMLOption(),
+                carbonDistribution(
+                        Paths.get("target", "wso2das-" + System.getProperty("carbon.analytic.version")),
+                        "worker")
         };
     }
 

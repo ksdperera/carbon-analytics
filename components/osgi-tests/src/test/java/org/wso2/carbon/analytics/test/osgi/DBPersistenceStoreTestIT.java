@@ -39,6 +39,8 @@ import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.exception.CannotRestoreSiddhiAppStateException;
 
+import javax.inject.Inject;
+import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -46,10 +48,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import javax.inject.Inject;
-import javax.sql.DataSource;
 
 import static org.ops4j.pax.exam.CoreOptions.maven;
+import static org.wso2.carbon.container.options.CarbonDistributionOption.carbonDistribution;
 import static org.wso2.carbon.container.options.CarbonDistributionOption.copyFile;
 
 @Listeners(PaxExam.class)
@@ -113,7 +114,9 @@ public class DBPersistenceStoreTestIT {
                         "org.postgresql","postgresql").versionAsInProject()),
                 CarbonDistributionOption.copyOSGiLibBundle(maven(
                         "com.microsoft.sqlserver","mssql-jdbc").versionAsInProject()),
-        };
+                carbonDistribution(
+                        Paths.get("target", "wso2das-" + System.getProperty("carbon.analytic.version")),
+                        "worker")};
     }
 
     @Test

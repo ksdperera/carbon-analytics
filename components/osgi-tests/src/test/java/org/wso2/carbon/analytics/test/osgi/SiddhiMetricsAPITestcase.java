@@ -29,13 +29,15 @@ import org.testng.annotations.Test;
 import org.wso2.carbon.analytics.test.osgi.util.HTTPResponseMessage;
 import org.wso2.carbon.analytics.test.osgi.util.TestUtil;
 import org.wso2.carbon.container.CarbonContainerFactory;
-import org.wso2.carbon.container.options.CarbonDistributionOption;
 import org.wso2.carbon.kernel.CarbonServerInfo;
 import org.wso2.carbon.metrics.core.MetricManagementService;
 import org.wso2.carbon.metrics.core.MetricService;
 
 import javax.inject.Inject;
 import java.net.URI;
+import java.nio.file.Paths;
+
+import static org.wso2.carbon.container.options.CarbonDistributionOption.carbonDistribution;
 
 /**
  * SiddhiAsAPI OSGI Tests.
@@ -64,8 +66,10 @@ public class SiddhiMetricsAPITestcase {
 
     @Configuration
     public Option[] createConfiguration() {
-        return new Option[]{ };
-        }
+        return new Option[]{carbonDistribution(
+                Paths.get("target", "wso2das-" + System.getProperty("carbon.analytic.version")),
+                "worker")};
+    }
 
     @Test
     public void testEnableMetric() throws Exception {
