@@ -40,7 +40,6 @@ import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.exception.CannotRestoreSiddhiAppStateException;
 
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
