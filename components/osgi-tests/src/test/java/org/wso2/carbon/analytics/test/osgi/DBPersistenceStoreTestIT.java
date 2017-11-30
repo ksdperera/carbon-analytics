@@ -18,6 +18,7 @@ package org.wso2.carbon.analytics.test.osgi;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.log4j.Logger;
+import org.awaitility.Awaitility;
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.ExamFactory;
 import org.ops4j.pax.exam.Option;
@@ -39,8 +40,7 @@ import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.exception.CannotRestoreSiddhiAppStateException;
 
-import javax.inject.Inject;
-import javax.sql.DataSource;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -48,6 +48,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
+import javax.inject.Inject;
+import javax.sql.DataSource;
 
 import static org.ops4j.pax.exam.CoreOptions.maven;
 import static org.wso2.carbon.container.options.CarbonDistributionOption.carbonDistribution;
@@ -83,7 +86,7 @@ public class DBPersistenceStoreTestIT {
         }
         carbonYmlFilePath = Paths.get(basedir, "src", "test", "resources",
                 "conf", "db", "persistence", CARBON_YAML_FILENAME);
-        return copyFile(carbonYmlFilePath, Paths.get("conf", "default", CARBON_YAML_FILENAME));
+        return copyFile(carbonYmlFilePath, Paths.get("conf", "worker", CARBON_YAML_FILENAME));
     }
 
     /**
@@ -111,23 +114,24 @@ public class DBPersistenceStoreTestIT {
                 copyCarbonYAMLOption(),
                 copyOracleJDBCJar(),
                 CarbonDistributionOption.copyOSGiLibBundle(maven(
-                        "org.postgresql","postgresql").versionAsInProject()),
+                        "org.postgresql", "postgresql").versionAsInProject()),
                 CarbonDistributionOption.copyOSGiLibBundle(maven(
-                        "com.microsoft.sqlserver","mssql-jdbc").versionAsInProject()),
-                carbonDistribution(
-                        Paths.get("target", "wso2das-" + System.getProperty("carbon.analytic.version")),
+                        "com.microsoft.sqlserver", "mssql-jdbc").versionAsInProject()),
+                carbonDistribution(Paths.get("target", "wso2das-" + System.getProperty("carbon.analytic.version")),
                         "worker")};
     }
 
     @Test
-    public void testDBSystemPersistence() throws InterruptedException {
+    public void testDBSystemPersistence() throws InterruptedException, DataSourceException, SQLException {
         Connection con = null;
         PreparedStatement stmt = null;
         try {
-            DataSource dataSource = null;
-            dataSource = (HikariDataSource) dataSourceService.getDataSource("WSO2_ANALYTICS_DB");
+            final DataSource dataSource = (HikariDataSource) dataSourceService.getDataSource("WSO2_ANALYTICS_DB");
             con = dataSource.getConnection();
-            Thread.sleep(5000);
+            Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+                SiddhiManager siddhiManager = StreamProcessorDataHolder.getSiddhiManager();
+                return siddhiManager != null;
+            });
             log.info("Running periodic persistence tests with database type " + con.getMetaData().
                     getDatabaseProductName().toLowerCase());
             SiddhiAppRuntime siddhiAppRuntime = SiddhiAppUtil.
@@ -140,27 +144,24 @@ public class DBPersistenceStoreTestIT {
             SiddhiAppUtil.sendDataToStream("WSO2", 150L, siddhiAppRuntime);
 
             log.info("Waiting for first time interval for state persistence");
-            Thread.sleep(61000);
-
-            stmt = con.prepareStatement(selectLastQuery);
-            stmt.setString(1, siddhiAppRuntime.getName());
-            ResultSet resultSet = stmt.executeQuery();
-            if (resultSet.next()) {
-                log.info(resultSet.getString("siddhiAppName") + " Revisions Found");
-            } else {
-                Assert.fail("Database should have a state persisted");
-            }
-        } catch (DataSourceException e) {
-            log.error("Could not return data source with name ", e);
-        } catch (SQLException e) {
-            log.error("Cannot establish connection to the data source ", e);
+            Awaitility.await().atMost(2, TimeUnit.MINUTES).until(() -> {
+                Connection connection = dataSource.getConnection();
+                PreparedStatement statement = connection.prepareStatement(selectLastQuery);
+                statement.setString(1, siddhiAppRuntime.getName());
+                ResultSet resultSet = statement.executeQuery();
+                if (resultSet.next()) {
+                    log.info(resultSet.getString("siddhiAppName") + " Revisions Found");
+                    return true;
+                } else {
+                    statement.close();
+                    connection.close();
+                    return false;
+                }
+            });
         } finally {
             try {
                 if (con != null) {
                     con.close();
-                }
-                if (stmt != null) {
-                    stmt.close();
                 }
             } catch (SQLException e) {
                 log.error("Error in closing connection to test datasource ", e);
@@ -170,10 +171,23 @@ public class DBPersistenceStoreTestIT {
     }
 
     @Test(dependsOnMethods = {"testDBSystemPersistence"})
-    public void testRestore() throws InterruptedException {
+    public void testRestoreFromDBSystem() throws InterruptedException, DataSourceException, SQLException {
+        DataSource dataSource = (HikariDataSource) dataSourceService.getDataSource("WSO2_ANALYTICS_DB");
         log.info("Waiting for second time interval for state persistence");
-        Thread.sleep(60000);
-
+        Awaitility.await().atMost(2, TimeUnit.MINUTES).until(() -> {
+            Connection con = dataSource.getConnection();
+            PreparedStatement stmt = con.prepareStatement(selectLastQuery);
+            stmt.setString(1, "SiddhiAppPersistence");
+            ResultSet resultSet = stmt.executeQuery();
+            int count = 0;
+            while (resultSet.next()) {
+                count++;
+                Assert.assertEquals(resultSet.getString("siddhiAppName"), SIDDHIAPP_NAME);
+            }
+            con.close();
+            stmt.close();
+            return count == 2;
+        });
         SiddhiManager siddhiManager = StreamProcessorDataHolder.getSiddhiManager();
         SiddhiAppRuntime siddhiAppRuntime = siddhiManager.getSiddhiAppRuntime(SIDDHIAPP_NAME);
         log.info("Restarting " + SIDDHIAPP_NAME + " and restoring last saved state");
@@ -198,17 +212,16 @@ public class DBPersistenceStoreTestIT {
                 "300", "300", "280", "280", "280"));
     }
 
-    @Test(dependsOnMethods = {"testRestore"})
+    @Test(dependsOnMethods = {"testRestoreFromDBSystem"})
     public void testPeriodicDBSystemPersistence() throws InterruptedException {
 
         Connection con = null;
         PreparedStatement stmt = null;
         try {
-            DataSource dataSource = null;
-            dataSource = (HikariDataSource) dataSourceService.getDataSource("WSO2_ANALYTICS_DB");
+            DataSource dataSource = (HikariDataSource) dataSourceService.getDataSource("WSO2_ANALYTICS_DB");
             con = dataSource.getConnection();
             log.info("Waiting for third time interval for state persistence");
-            Thread.sleep(60000);
+            Thread.sleep(60000); //await() cannot be used because number of persisted revisions do not change
 
             stmt = con.prepareStatement(selectLastQuery);
             SiddhiManager siddhiManager = StreamProcessorDataHolder.getSiddhiManager();
