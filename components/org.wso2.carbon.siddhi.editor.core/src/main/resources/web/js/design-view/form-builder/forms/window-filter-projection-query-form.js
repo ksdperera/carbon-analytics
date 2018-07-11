@@ -18,9 +18,10 @@
 
 define(['require', 'log', 'jquery', 'lodash', 'querySelect', 'queryOutputInsert', 'queryOutputDelete',
         'queryOutputUpdate', 'queryOutputUpdateOrInsertInto', 'queryWindowOrFunction', 'queryOrderByValue',
-        'streamHandler', 'designViewUtils'],
+        'streamHandler', 'designViewUtils', 'jsonValidator'],
     function (require, log, $, _, QuerySelect, QueryOutputInsert, QueryOutputDelete, QueryOutputUpdate,
-              QueryOutputUpdateOrInsertInto, QueryWindowOrFunction, QueryOrderByValue, StreamHandler, DesignViewUtils) {
+              QueryOutputUpdateOrInsertInto, QueryWindowOrFunction, QueryOrderByValue, StreamHandler, DesignViewUtils,
+              JSONValidator) {
 
         var constants = {
             PROJECTION: 'projectionQueryDrop',
@@ -448,6 +449,9 @@ define(['require', 'log', 'jquery', 'lodash', 'querySelect', 'queryOutputInsert'
                                 title: "Function",
                                 type: "object",
                                 required: true,
+                                options: {
+                                    disable_properties: false
+                                },
                                 properties: {
                                     functionName: {
                                         required: true,
@@ -456,7 +460,6 @@ define(['require', 'log', 'jquery', 'lodash', 'querySelect', 'queryOutputInsert'
                                         minLength: 1
                                     },
                                     parameters: {
-                                        required: true,
                                         type: "array",
                                         format: "table",
                                         title: "Parameters",
@@ -553,6 +556,9 @@ define(['require', 'log', 'jquery', 'lodash', 'querySelect', 'queryOutputInsert'
                                 title: "Window",
                                 type: "object",
                                 required: true,
+                                options: {
+                                    disable_properties: false
+                                },
                                 properties: {
                                     windowName: {
                                         required: true,
@@ -561,7 +567,6 @@ define(['require', 'log', 'jquery', 'lodash', 'querySelect', 'queryOutputInsert'
                                         minLength: 1
                                     },
                                     parameters: {
-                                        required: true,
                                         type: "array",
                                         format: "table",
                                         title: "Parameters",
@@ -585,6 +590,9 @@ define(['require', 'log', 'jquery', 'lodash', 'querySelect', 'queryOutputInsert'
                                 title: "Function",
                                 type: "object",
                                 required: true,
+                                options: {
+                                    disable_properties: false
+                                },
                                 properties: {
                                     functionName: {
                                         required: true,
@@ -593,7 +601,6 @@ define(['require', 'log', 'jquery', 'lodash', 'querySelect', 'queryOutputInsert'
                                         minLength: 1
                                     },
                                     parameters: {
-                                        required: true,
                                         type: "array",
                                         format: "table",
                                         title: "Parameters",
@@ -673,10 +680,10 @@ define(['require', 'log', 'jquery', 'lodash', 'querySelect', 'queryOutputInsert'
 
                 formContainer.find('.define-windowFilterProjection-query')
                     .append('<div class="col-md-12 section-seperator frm-qry"><div class="col-md-4">' +
-                    '<div class="row"><div id="form-query-annotation" class="col-md-12 section-seperator"></div></div>' +
-                    '<div class="row"><div id="form-query-input" class="col-md-12"></div></div></div>' +
-                    '<div id="form-query-select" class="col-md-4"></div>' +
-                    '<div id="form-query-output" class="col-md-4"></div></div>');
+                        '<div class="row"><div id="form-query-annotation" class="col-md-12 section-seperator"></div></div>' +
+                        '<div class="row"><div id="form-query-input" class="col-md-12"></div></div></div>' +
+                        '<div id="form-query-select" class="col-md-4"></div>' +
+                        '<div id="form-query-output" class="col-md-4"></div></div>');
 
                 var editorAnnotation = new JSONEditor($(formContainer).find('#form-query-annotation')[0], {
                     schema: {
@@ -1286,6 +1293,9 @@ define(['require', 'log', 'jquery', 'lodash', 'querySelect', 'queryOutputInsert'
                         queryOutput.setOutput(outputObject);
                         queryOutput.setType(outputType);
                     }
+
+                    // perform JSON validation
+                    JSONValidator.prototype.validateWindowFilterProjectionQuery(clickedElement);
 
                     self.designViewContainer.removeClass('disableContainer');
                     self.toggleViewButton.removeClass('disableContainer');
