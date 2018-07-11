@@ -18,10 +18,11 @@
 
 define(['require', 'log', 'jquery', 'lodash', 'querySelect', 'queryOutputInsert', 'queryOutputDelete',
         'queryOutputUpdate', 'queryOutputUpdateOrInsertInto', 'queryOrderByValue',
-        'patternOrSequenceQueryCondition', 'streamHandler', 'queryWindowOrFunction', 'designViewUtils'],
+        'patternOrSequenceQueryCondition', 'streamHandler', 'queryWindowOrFunction', 'designViewUtils',
+        'jsonValidator'],
     function (require, log, $, _, QuerySelect, QueryOutputInsert, QueryOutputDelete, QueryOutputUpdate,
               QueryOutputUpdateOrInsertInto, QueryOrderByValue, PatternOrSequenceQueryCondition, StreamHandler,
-              QueryWindowOrFunction, DesignViewUtils) {
+              QueryWindowOrFunction, DesignViewUtils, JSONValidator) {
 
         /**
          * @class PatternQueryForm Creates a forms to collect data from a pattern query
@@ -383,10 +384,10 @@ define(['require', 'log', 'jquery', 'lodash', 'querySelect', 'queryOutputInsert'
 
                 formContainer.find('.define-pattern-query')
                     .append('<div class="col-md-12 section-seperator frm-qry"><div class="col-md-4">' +
-                    '<div class="row"><div id="form-query-annotation" class="col-md-12 section-seperator"></div></div>' +
-                    '<div class="row"><div id="form-query-input" class="col-md-12"></div></div></div>' +
-                    '<div id="form-query-select" class="col-md-4"></div>' +
-                    '<div id="form-query-output" class="col-md-4"></div></div>');
+                        '<div class="row"><div id="form-query-annotation" class="col-md-12 section-seperator"></div></div>' +
+                        '<div class="row"><div id="form-query-input" class="col-md-12"></div></div></div>' +
+                        '<div id="form-query-select" class="col-md-4"></div>' +
+                        '<div id="form-query-output" class="col-md-4"></div></div>');
 
                 var editorAnnotation = new JSONEditor($(formContainer).find('#form-query-annotation')[0], {
                     schema: {
@@ -524,6 +525,9 @@ define(['require', 'log', 'jquery', 'lodash', 'querySelect', 'queryOutputInsert'
                                 title: "Function",
                                 type: "object",
                                 required: true,
+                                options: {
+                                    disable_properties: false
+                                },
                                 properties: {
                                     functionName: {
                                         required: true,
@@ -532,7 +536,6 @@ define(['require', 'log', 'jquery', 'lodash', 'querySelect', 'queryOutputInsert'
                                         minLength: 1
                                     },
                                     parameters: {
-                                        required: true,
                                         type: "array",
                                         format: "table",
                                         title: "Parameters",
@@ -1105,6 +1108,9 @@ define(['require', 'log', 'jquery', 'lodash', 'querySelect', 'queryOutputInsert'
                         queryOutput.setOutput(outputObject);
                         queryOutput.setType(outputType);
                     }
+
+                    // perform JSON validation
+                    JSONValidator.prototype.validatePatternOrSequenceQuery(clickedElement, 'Pattern Query');
 
                     self.designViewContainer.removeClass('disableContainer');
                     self.toggleViewButton.removeClass('disableContainer');

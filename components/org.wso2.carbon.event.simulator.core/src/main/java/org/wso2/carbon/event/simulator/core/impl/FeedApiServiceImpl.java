@@ -24,10 +24,7 @@ import org.wso2.carbon.analytics.permissions.PermissionProvider;
 import org.wso2.carbon.analytics.permissions.bean.Permission;
 import org.wso2.carbon.event.simulator.core.api.FeedApiService;
 import org.wso2.carbon.event.simulator.core.api.NotFoundException;
-import org.wso2.carbon.event.simulator.core.exception.FileAlreadyExistsException;
-import org.wso2.carbon.event.simulator.core.exception.FileOperationsException;
-import org.wso2.carbon.event.simulator.core.exception.InsufficientAttributesException;
-import org.wso2.carbon.event.simulator.core.exception.InvalidConfigException;
+import org.wso2.carbon.event.simulator.core.exception.*;
 import org.wso2.carbon.event.simulator.core.internal.util.CommonOperations;
 import org.wso2.carbon.event.simulator.core.internal.util.EventSimulatorConstants;
 import org.wso2.carbon.event.simulator.core.internal.util.SimulationConfigUploader;
@@ -49,7 +46,7 @@ import java.util.concurrent.Executors;
 import javax.ws.rs.core.Response;
 
 @javax.annotation.Generated(value = "io.swagger.codegen.languages.JavaMSF4JServerCodegen",
-                            date = "2017-07-20T09:30:14.336Z")
+        date = "2017-07-20T09:30:14.336Z")
 public class FeedApiServiceImpl extends FeedApiService {
     private static final ExecutorService executorServices = Executors.newFixedThreadPool(10);
     private static final String PERMISSION_APP_NAME = "SIM";
@@ -63,15 +60,15 @@ public class FeedApiServiceImpl extends FeedApiService {
                     simulationConfigUploader.getSimulationName(simulationConfiguration))) {
                 try {
                     EventSimulator.validateSimulationConfig(simulationConfiguration, false);
-                } catch (ResourceNotFoundException e) {
+                } catch (SimulationValidationException e) {
                     //do nothing
                 }
                 simulationConfigUploader.uploadSimulationConfig(simulationConfiguration,
-                                                                (Paths.get(Utils.getRuntimePath().toString(),
-                                                                           EventSimulatorConstants.DIRECTORY_DEPLOYMENT,
-                                                                           EventSimulatorConstants
-                                                                                   .DIRECTORY_SIMULATION_CONFIGS))
-                                                                        .toString());
+                        (Paths.get(Utils.getRuntimePath().toString(),
+                                EventSimulatorConstants.DIRECTORY_DEPLOYMENT,
+                                EventSimulatorConstants
+                                        .DIRECTORY_SIMULATION_CONFIGS))
+                                .toString());
                 return Response.status(Response.Status.CREATED)
                         .header("Access-Control-Allow-Origin", "*")
                         .entity(new ResponseMapper(Response.Status.CREATED, "Successfully uploaded simulation " +
@@ -88,7 +85,7 @@ public class FeedApiServiceImpl extends FeedApiService {
                                 + "'"))
                         .build();
             }
-        } catch (InvalidConfigException | InsufficientAttributesException | FileOperationsException |
+        } catch (SimulationValidationException | FileOperationsException |
                 FileAlreadyExistsException e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .header("Access-Control-Allow-Origin", "*")
@@ -104,10 +101,10 @@ public class FeedApiServiceImpl extends FeedApiService {
             deleted = SimulationConfigUploader.
                     getConfigUploader().
                     deleteSimulationConfig(simulationName,
-                                           (Paths.get(Utils.getRuntimePath().toString(),
-                                                      EventSimulatorConstants.DIRECTORY_DEPLOYMENT,
-                                                      EventSimulatorConstants.DIRECTORY_SIMULATION_CONFIGS))
-                                                   .toString());
+                            (Paths.get(Utils.getRuntimePath().toString(),
+                                    EventSimulatorConstants.DIRECTORY_DEPLOYMENT,
+                                    EventSimulatorConstants.DIRECTORY_SIMULATION_CONFIGS))
+                                    .toString());
             if (deleted) {
                 return Response.ok()
                         .header("Access-Control-Allow-Origin", "*")
@@ -134,14 +131,14 @@ public class FeedApiServiceImpl extends FeedApiService {
             JSONObject result = new JSONObject();
             try {
                 result.put("Simulation configuration",
-                           new JSONObject(SimulationConfigUploader.
-                                   getConfigUploader().
-                                   getSimulationConfig(simulationName,
-                                                       (Paths.get(Utils.getRuntimePath().toString(),
-                                                                  EventSimulatorConstants.DIRECTORY_DEPLOYMENT,
-                                                                  EventSimulatorConstants.DIRECTORY_SIMULATION_CONFIGS))
-                                                               .
-                                                                       toString())));
+                        new JSONObject(SimulationConfigUploader.
+                                getConfigUploader().
+                                getSimulationConfig(simulationName,
+                                        (Paths.get(Utils.getRuntimePath().toString(),
+                                                EventSimulatorConstants.DIRECTORY_DEPLOYMENT,
+                                                EventSimulatorConstants.DIRECTORY_SIMULATION_CONFIGS))
+                                                .
+                                                        toString())));
             } catch (FileOperationsException e) {
                 return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                         .header("Access-Control-Allow-Origin", "*")
@@ -176,20 +173,20 @@ public class FeedApiServiceImpl extends FeedApiService {
                 activeSimulations.put(new JSONObject(SimulationConfigUploader.
                         getConfigUploader().
                         getSimulationConfig(entry.getKey(),
-                                            (Paths.get(Utils.getRuntimePath().toString(),
-                                                       EventSimulatorConstants.DIRECTORY_DEPLOYMENT,
-                                                       EventSimulatorConstants.DIRECTORY_SIMULATION_CONFIGS)).
-                                                    toString())));
+                                (Paths.get(Utils.getRuntimePath().toString(),
+                                        EventSimulatorConstants.DIRECTORY_DEPLOYMENT,
+                                        EventSimulatorConstants.DIRECTORY_SIMULATION_CONFIGS)).
+                                        toString())));
             }
             for (Map.Entry<String, ResourceDependencyData> entry : inActiveSimulatorMap.entrySet()) {
                 JSONObject inactiveSimulation = new JSONObject(SimulationConfigUploader.getConfigUploader()
-                                                                       .getSimulationConfig(entry.getKey(), (Paths.get(
-                                                                               Utils.getRuntimePath().toString(),
-                                                                               EventSimulatorConstants
-                                                                                       .DIRECTORY_DEPLOYMENT,
-                                                                               EventSimulatorConstants
-                                                                                       .DIRECTORY_SIMULATION_CONFIGS))
-                                                                               .toString()));
+                        .getSimulationConfig(entry.getKey(), (Paths.get(
+                                Utils.getRuntimePath().toString(),
+                                EventSimulatorConstants
+                                        .DIRECTORY_DEPLOYMENT,
+                                EventSimulatorConstants
+                                        .DIRECTORY_SIMULATION_CONFIGS))
+                                .toString()));
                 inactiveSimulation.put("exceptionReason", entry.getValue().getExceptionReason());
                 inActiveSimulations.put(inactiveSimulation);
             }
@@ -276,11 +273,11 @@ public class FeedApiServiceImpl extends FeedApiService {
         if (simulationConfigUploader.checkSimulationExists(
                 simulationName,
                 Paths.get(Utils.getRuntimePath().toString(),
-                          EventSimulatorConstants.DIRECTORY_DEPLOYMENT,
-                          EventSimulatorConstants.DIRECTORY_SIMULATION_CONFIGS).toString())) {
+                        EventSimulatorConstants.DIRECTORY_DEPLOYMENT,
+                        EventSimulatorConstants.DIRECTORY_SIMULATION_CONFIGS).toString())) {
             try {
                 EventSimulator.validateSimulationConfig(simulationConfigDetails, false);
-            } catch (ResourceNotFoundException | InvalidConfigException | InsufficientAttributesException e) {
+            } catch (SimulationValidationException e) {
                 return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                         .header("Access-Control-Allow-Origin", "*")
                         .entity(new ResponseMapper(Response.Status.INTERNAL_SERVER_ERROR, e.getMessage()))
@@ -290,10 +287,10 @@ public class FeedApiServiceImpl extends FeedApiService {
             try {
                 deleted = simulationConfigUploader.
                         deleteSimulationConfig(simulationName,
-                                               (Paths.get(Utils.getRuntimePath().toString(),
-                                                          EventSimulatorConstants.DIRECTORY_DEPLOYMENT,
-                                                          EventSimulatorConstants.DIRECTORY_SIMULATION_CONFIGS))
-                                                       .toString());
+                                (Paths.get(Utils.getRuntimePath().toString(),
+                                        EventSimulatorConstants.DIRECTORY_DEPLOYMENT,
+                                        EventSimulatorConstants.DIRECTORY_SIMULATION_CONFIGS))
+                                        .toString());
             } catch (FileOperationsException e) {
                 e.printStackTrace();
             }
@@ -303,8 +300,8 @@ public class FeedApiServiceImpl extends FeedApiService {
                             uploadSimulationConfig(
                                     simulationConfigDetails,
                                     (Paths.get(Utils.getRuntimePath().toString(),
-                                               EventSimulatorConstants.DIRECTORY_DEPLOYMENT,
-                                               EventSimulatorConstants.DIRECTORY_SIMULATION_CONFIGS)).toString());
+                                            EventSimulatorConstants.DIRECTORY_DEPLOYMENT,
+                                            EventSimulatorConstants.DIRECTORY_SIMULATION_CONFIGS)).toString());
                 } catch (FileOperationsException | InvalidConfigException | FileAlreadyExistsException e) {
                     return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                             .header("Access-Control-Allow-Origin", "*")
@@ -363,7 +360,7 @@ public class FeedApiServiceImpl extends FeedApiService {
      * @throws FileOperationsException         if an IOException occurs during file manipulations
      */
     private Response run(String simulationName) throws FileOperationsException, InvalidConfigException,
-                                                       InsufficientAttributesException {
+            InsufficientAttributesException {
         ActiveSimulatorData activeSimulatorData = EventSimulatorMap.getInstance().getActiveSimulatorMap()
                 .get(simulationName);
         if (activeSimulatorData != null) {
@@ -412,8 +409,8 @@ public class FeedApiServiceImpl extends FeedApiService {
             return Response.status(Response.Status.NOT_FOUND)
                     .header("Access-Control-Allow-Origin", "*")
                     .entity(new ResponseMapper(Response.Status.NOT_FOUND,
-                                               "No event simulation configuration available under simulation name '"
-                                               + simulationName + "'.")).build();
+                            "No event simulation configuration available under simulation name '"
+                                    + simulationName + "'.")).build();
         }
     }
 

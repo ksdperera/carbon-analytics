@@ -17,11 +17,11 @@
  */
 define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dropElements', 'dagre', 'edge',
         'windowFilterProjectionQueryInput', 'joinQueryInput', 'patternOrSequenceQueryInput', 'queryOutput',
-        'partitionWith'],
+        'partitionWith', 'jsonValidator'],
 
     function (require, log, $, Backbone, _, DesignViewUtils, DropElements, dagre, Edge,
               WindowFilterProjectionQueryInput, JoinQueryInput, PatternOrSequenceQueryInput, QueryOutput,
-              PartitionWith) {
+              PartitionWith, JSONValidator) {
 
         var constants = {
             SOURCE: 'sourceDrop',
@@ -449,9 +449,9 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                     // When connecting streams to a query inside the partition if it is connected to the partition
                     // connection point, it cannot connect to the query directly
                     if ((targetElement.hasClass(constants.PROJECTION) || targetElement.hasClass(constants.FILTER)
-                        || targetElement.hasClass(constants.WINDOW_QUERY) || targetElement.hasClass(constants.JOIN)
-                        || targetElement.hasClass(constants.FUNCTION_QUERY) || targetElement.hasClass(constants.PATTERN)
-                        || targetElement.hasClass(constants.SEQUENCE))
+                            || targetElement.hasClass(constants.WINDOW_QUERY) || targetElement.hasClass(constants.JOIN)
+                            || targetElement.hasClass(constants.FUNCTION_QUERY) || targetElement.hasClass(constants.PATTERN)
+                            || targetElement.hasClass(constants.SEQUENCE))
                         && sourceElement.hasClass(constants.STREAM)) {
                         var querySavedInsideAPartition
                             = self.configurationData.getSiddhiAppConfig().getQueryByIdSavedInsideAPartition(targetId);
@@ -481,7 +481,7 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                         || targetElement.hasClass(constants.WINDOW_QUERY)
                         || targetElement.hasClass(constants.FUNCTION_QUERY)) {
                         if (!(sourceElement.hasClass(constants.STREAM) || sourceElement.hasClass(constants.WINDOW)
-                            || sourceElement.hasClass(constants.TRIGGER))) {
+                                || sourceElement.hasClass(constants.TRIGGER))) {
                             DesignViewUtils.prototype.errorAlert("Invalid Connection");
                             return connectionValidity;
                         } else {
@@ -490,9 +490,9 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
 
                     } else if (targetElement.hasClass(constants.JOIN)) {
                         if (!(sourceElement.hasClass(constants.STREAM) || sourceElement.hasClass(constants.TABLE)
-                            || sourceElement.hasClass(constants.AGGREGATION)
-                            || sourceElement.hasClass(constants.TRIGGER)
-                            || sourceElement.hasClass(constants.WINDOW))) {
+                                || sourceElement.hasClass(constants.AGGREGATION)
+                                || sourceElement.hasClass(constants.TRIGGER)
+                                || sourceElement.hasClass(constants.WINDOW))) {
                             DesignViewUtils.prototype.errorAlert("Invalid Connection");
                             return connectionValidity;
                         } else {
@@ -558,7 +558,7 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                         || sourceElement.hasClass(constants.JOIN) || sourceElement.hasClass(constants.SEQUENCE)
                         || sourceElement.hasClass(constants.FUNCTION_QUERY)) {
                         if (!(targetElement.hasClass(constants.STREAM) || targetElement.hasClass(constants.TABLE)
-                            || targetElement.hasClass(constants.WINDOW))) {
+                                || targetElement.hasClass(constants.WINDOW))) {
                             DesignViewUtils.prototype.errorAlert("Invalid Connection");
                             return connectionValidity;
                         } else {
@@ -691,27 +691,15 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                             deleteEndpointsOnDetach: true
                         });
 
-                    } else if (sourceElement.hasClass(constants.SOURCE)
-                        && (targetElement.hasClass(constants.STREAM) || targetElement.hasClass(constants.TRIGGER))) {
-                        if (targetElement.hasClass(constants.STREAM)) {
-                            connectedElementName = self.configurationData.getSiddhiAppConfig().getStream(targetId)
-                                .getName();
-                        } else if (targetElement.hasClass(constants.TRIGGER)) {
-                            connectedElementName = self.configurationData.getSiddhiAppConfig().getTrigger(targetId)
-                                .getName();
-                        }
+                    } else if (sourceElement.hasClass(constants.SOURCE) && targetElement.hasClass(constants.STREAM)) {
+                        connectedElementName = self.configurationData.getSiddhiAppConfig().getStream(targetId)
+                            .getName();
                         self.configurationData.getSiddhiAppConfig().getSource(sourceId)
                             .setConnectedElementName(connectedElementName);
 
-                    } else if (targetElement.hasClass(constants.SINK)
-                        && (sourceElement.hasClass(constants.STREAM) || sourceElement.hasClass(constants.TRIGGER))) {
-                        if (sourceElement.hasClass(constants.STREAM)) {
-                            connectedElementName = self.configurationData.getSiddhiAppConfig().getStream(sourceId)
-                                .getName();
-                        } else if (sourceElement.hasClass(constants.TRIGGER)) {
-                            connectedElementName = self.configurationData.getSiddhiAppConfig().getTrigger(sourceId)
-                                .getName();
-                        }
+                    } else if (targetElement.hasClass(constants.SINK) && sourceElement.hasClass(constants.STREAM)) {
+                        connectedElementName = self.configurationData.getSiddhiAppConfig().getStream(sourceId)
+                            .getName();
                         self.configurationData.getSiddhiAppConfig().getSink(targetId)
                             .setConnectedElementName(connectedElementName);
 
@@ -768,7 +756,7 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                         }
 
                         if ((sourceElement.hasClass(constants.STREAM) || sourceElement.hasClass(constants.WINDOW)
-                            || sourceElement.hasClass(constants.TRIGGER))
+                                || sourceElement.hasClass(constants.TRIGGER))
                             && (targetElement.hasClass(constants.PROJECTION) || targetElement.hasClass(constants.FILTER)
                                 || targetElement.hasClass(constants.WINDOW_QUERY)
                                 || targetElement.hasClass(constants.FUNCTION_QUERY))) {
@@ -911,6 +899,18 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                         }
                     }
 
+                    // do not check for json validity if the design is still generating from the data sent from backend
+                    if (!self.configurationData.getIsStillDrawingGraph()) {
+                        if (sourceType === 'PARTITION') {
+                            sourceId = sourceElement.parent().attr('id');
+                        } else if (targetType === 'PARTITION') {
+                            targetId = targetElement.parent().attr('id');
+                        }
+                        // validate source and target elements
+                        checkJSONValidityOfElement(self, sourceId, true);
+                        checkJSONValidityOfElement(self, targetId, true);
+                    }
+
                     var connectionObject = connection.connection;
                     // add a overlay of a close icon for connection. connection can be detached by clicking on it
                     var close_icon_overlay = connectionObject.addOverlay([
@@ -922,16 +922,12 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                             id: "close",
                             events: {
                                 click: function () {
-                                    if (confirm('Are you sure you want to remove the connection?')) {
-                                        self.jsPlumbInstance.deleteConnection(connectionObject);
-                                    } else {
-                                    }
+                                    self.jsPlumbInstance.deleteConnection(connectionObject);
                                 }
                             }
                         }
                     ]);
 
-                    //TODO: check the mouse enter and leave events when in a partition
                     if (isConnectionMadeInsideAPartition) {
                         close_icon_overlay.setVisible(false);
                         // show the close icon when mouse is over the connection
@@ -970,7 +966,7 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                     if (targetId === '') {
                         targetId = target;
                     } else if (!self.configurationData.getSiddhiAppConfig()
-                        .getDefinitionElementById(targetId, true, true)) {
+                            .getDefinitionElementById(targetId, true, true)) {
                         console.log("Target element not found!");
                     }
                     var targetElement = $('#' + targetId);
@@ -986,7 +982,7 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                     if (sourceId === '') {
                         sourceId = source;
                     } else if (!self.configurationData.getSiddhiAppConfig()
-                        .getDefinitionElementById(sourceId, true, true)) {
+                            .getDefinitionElementById(sourceId, true, true)) {
                         console.log("Source element not found!");
                     }
                     var sourceElement = $('#' + sourceId);
@@ -1009,6 +1005,9 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                             self.jsPlumbInstance.deleteConnection(connection);
                         });
                         targetElement.detach();
+
+                        // validate the partition
+                        checkJSONValidityOfElement(self, partitionId, true);
                     }
                 });
             }
@@ -1031,7 +1030,7 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                     if (targetId === '') {
                         targetId = target;
                     } else if (!self.configurationData.getSiddhiAppConfig()
-                        .getDefinitionElementById(targetId, true, true)) {
+                            .getDefinitionElementById(targetId, true, true)) {
                         console.log("Target element not found!");
                     }
                     var targetElement = $('#' + targetId);
@@ -1047,7 +1046,7 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                     if (sourceId === '') {
                         sourceId = source;
                     } else if (!self.configurationData.getSiddhiAppConfig()
-                        .getDefinitionElementById(sourceId, true, true)) {
+                            .getDefinitionElementById(sourceId, true, true)) {
                         console.log("Source element not found!");
                     }
                     var sourceElement = $('#' + sourceId);
@@ -1058,14 +1057,12 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
 
                     var model;
 
-                    if (sourceElement.hasClass(constants.SOURCE)
-                        && (targetElement.hasClass(constants.STREAM) || targetElement.hasClass(constants.TRIGGER))) {
+                    if (sourceElement.hasClass(constants.SOURCE) && targetElement.hasClass(constants.STREAM)) {
                         self.configurationData.getSiddhiAppConfig().getSource(sourceId)
                             .setConnectedElementName(undefined);
 
-                    } else if (targetElement.hasClass(constants.SINK)
-                        && (sourceElement.hasClass(constants.STREAM) || sourceElement.hasClass(constants.TRIGGER))) {
-                        self.configurationData.getSiddhiAppConfig().getSink(sourceId)
+                    } else if (targetElement.hasClass(constants.SINK) && sourceElement.hasClass(constants.STREAM)) {
+                        self.configurationData.getSiddhiAppConfig().getSink(targetId)
                             .setConnectedElementName(undefined);
 
                     } else if (targetElement.hasClass(constants.AGGREGATION)
@@ -1089,7 +1086,7 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                         }
 
                         if ((sourceElement.hasClass(constants.STREAM) || sourceElement.hasClass(constants.WINDOW)
-                            || sourceElement.hasClass(constants.TRIGGER))
+                                || sourceElement.hasClass(constants.TRIGGER))
                             && (targetElement.hasClass(constants.PROJECTION) || targetElement.hasClass(constants.FILTER)
                                 || targetElement.hasClass(constants.WINDOW_QUERY)
                                 || targetElement.hasClass(constants.FUNCTION_QUERY))) {
@@ -1180,6 +1177,10 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                             model.getQueryOutput().setTarget(undefined);
                         }
                     }
+
+                    // validate source and target elements
+                    checkJSONValidityOfElement(self, sourceId, true);
+                    checkJSONValidityOfElement(self, targetId, true);
                 });
             }
 
@@ -1238,6 +1239,9 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                                     textNode.html(streamName);
                                     self.configurationData.getSiddhiAppConfig().removeStream(elementId);
                                     partition.addStream(streamObjectCopy);
+
+                                    JSONValidator.prototype
+                                        .validateInnerStream(streamObjectCopy, self.jsPlumbInstance, true);
                                 } else {
                                     isGroupMemberValid = false;
                                     errorMessage = ' An inner stream with the same name is already added to the ' +
@@ -1317,6 +1321,47 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
                 });
             }
 
+            function checkJSONValidityOfElement(self, elementId, doNotShowErrorMessages) {
+                var element = self.configurationData.getSiddhiAppConfig()
+                    .getDefinitionElementById(elementId, true, true, true);
+                if (element !== undefined) {
+                    var type = element.type;
+                    var elementObject = element.element;
+                    if (type === 'STREAM') {
+                        // If this is an inner stream perform validation
+                        var streamSavedInsideAPartition
+                            = self.configurationData.getSiddhiAppConfig()
+                            .getStreamSavedInsideAPartition(elementObject.getId());
+                        // if streamSavedInsideAPartition is undefined then the stream is not inside a partition
+                        if (streamSavedInsideAPartition !== undefined) {
+                            JSONValidator.prototype.validateInnerStream(elementObject, self.jsPlumbInstance, true);
+                        }
+                    } else if (type === 'WINDOW_FILTER_PROJECTION_QUERY') {
+                        JSONValidator.prototype.validateWindowFilterProjectionQuery(elementObject,
+                            doNotShowErrorMessages);
+                    } else if (type === 'PATTERN_QUERY') {
+                        JSONValidator.prototype.validatePatternOrSequenceQuery(elementObject, 'Pattern Query',
+                            doNotShowErrorMessages);
+                    } else if (type === 'SEQUENCE_QUERY') {
+                        JSONValidator.prototype.validatePatternOrSequenceQuery(elementObject, 'Sequence Query',
+                            doNotShowErrorMessages);
+                    } else if (type === 'JOIN_QUERY') {
+                        JSONValidator.prototype.validateJoinQuery(elementObject, doNotShowErrorMessages);
+                    } else if (type === 'SOURCE') {
+                        JSONValidator.prototype.validateSourceOrSinkAnnotation(elementObject, 'Source',
+                            doNotShowErrorMessages);
+                    } else if (type === 'SINK') {
+                        JSONValidator.prototype.validateSourceOrSinkAnnotation(elementObject, 'Sink',
+                            doNotShowErrorMessages);
+                    } else if (type === 'AGGREGATION') {
+                        JSONValidator.prototype.validateAggregation(elementObject, doNotShowErrorMessages);
+                    } else if (type === 'PARTITION') {
+                        JSONValidator.prototype.validatePartition(elementObject, self.jsPlumbInstance,
+                            doNotShowErrorMessages);
+                    }
+                }
+            }
+
             checkConnectionValidityBeforeElementDrop();
 
             updateModelOnConnectionAttach();
@@ -1338,7 +1383,7 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
 
             _.forEach(self.configurationData.getSiddhiAppConfig().getSourceList(), function (source) {
                 var sourceId = source.getId();
-                var sourceName = "Source";
+                var sourceName = source.getType();
                 var array = sourceId.split("_");
                 var lastArrayEntry = parseInt(array[array.length - 1]);
                 var mouseTop = lastArrayEntry * 100 - self.canvas.offset().top + self.canvas.scrollTop() - 40;
@@ -1348,7 +1393,7 @@ define(['require', 'log', 'jquery', 'backbone', 'lodash', 'designViewUtils', 'dr
 
             _.forEach(self.configurationData.getSiddhiAppConfig().getSinkList(), function (sink) {
                 var sinkId = sink.getId();
-                var sinkName = "Sink";
+                var sinkName = sink.getType();
                 var array = sinkId.split("_");
                 var lastArrayEntry = parseInt(array[array.length - 1]);
                 var mouseTop = lastArrayEntry * 100 - self.canvas.offset().top + self.canvas.scrollTop() - 40;

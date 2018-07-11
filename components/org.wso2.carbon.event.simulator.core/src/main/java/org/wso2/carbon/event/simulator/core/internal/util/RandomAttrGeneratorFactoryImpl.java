@@ -25,6 +25,7 @@ import org.wso2.carbon.event.simulator.core.internal.generator.random.util.Custo
 import org.wso2.carbon.event.simulator.core.internal.generator.random.util.PrimitiveBasedAttrGenerator;
 import org.wso2.carbon.event.simulator.core.internal.generator.random.util.PropertyBasedAttrGenerator;
 import org.wso2.carbon.event.simulator.core.internal.generator.random.util.RegexBasedAttrGenerator;
+import org.wso2.carbon.stream.processor.common.exception.ResourceNotFoundException;
 import org.wso2.siddhi.query.api.definition.Attribute;
 
 import static org.wso2.carbon.event.simulator.core.internal.util.CommonOperations.checkAvailability;
@@ -49,12 +50,15 @@ public class RandomAttrGeneratorFactoryImpl implements RandomAttrGeneratorFactor
                 type = RandomAttributeGenerator.RandomDataGeneratorType.valueOf(attributeConfig
                         .getString(EventSimulatorConstants.RANDOM_DATA_GENERATOR_TYPE));
             } catch (IllegalArgumentException e) {
-                throw new InvalidConfigException("Invalid random attribute generation type. Generator type must " +
-                        "be either '" + RandomAttributeGenerator.RandomDataGeneratorType.CUSTOM_DATA_BASED + "' or '"
-                        + RandomAttributeGenerator.RandomDataGeneratorType.PRIMITIVE_BASED + "' or '" +
-                        RandomAttributeGenerator.RandomDataGeneratorType.PROPERTY_BASED + "' or '" +
-                        RandomAttributeGenerator.RandomDataGeneratorType.REGEX_BASED + "'. Invalid attribute " +
-                        "configuration : " + attributeConfig.toString());
+                throw new InvalidConfigException(
+                        ResourceNotFoundException.ResourceType.RANDOM_SIMULATION,
+                        attributeConfig.getString(EventSimulatorConstants.RANDOM_DATA_GENERATOR_TYPE),
+                        "Invalid random attribute generation type. Generator type must " +
+                                "be either '" + RandomAttributeGenerator.RandomDataGeneratorType.CUSTOM_DATA_BASED + "' or '"
+                                + RandomAttributeGenerator.RandomDataGeneratorType.PRIMITIVE_BASED + "' or '" +
+                                RandomAttributeGenerator.RandomDataGeneratorType.PROPERTY_BASED + "' or '" +
+                                RandomAttributeGenerator.RandomDataGeneratorType.REGEX_BASED + "'. Invalid attribute " +
+                                "configuration : " + attributeConfig.toString());
             }
             RandomAttributeGenerator randomAttributeGenerator = null;
             switch (type) {
@@ -77,13 +81,16 @@ public class RandomAttrGeneratorFactoryImpl implements RandomAttrGeneratorFactor
             }
             return randomAttributeGenerator;
         } else {
-            throw new InvalidConfigException("Random attribute generator type is required for random " +
-                    "simulation. Generation type must be either '" +
-                    RandomAttributeGenerator.RandomDataGeneratorType.CUSTOM_DATA_BASED + "' or '" +
-                    RandomAttributeGenerator.RandomDataGeneratorType.PRIMITIVE_BASED + "' or '" +
-                    RandomAttributeGenerator.RandomDataGeneratorType.PROPERTY_BASED + "' or '" +
-                    RandomAttributeGenerator.RandomDataGeneratorType.REGEX_BASED + "'. Invalid attribute" +
-                    " configuration : " + attributeConfig.toString());
+            throw new InvalidConfigException(
+                    ResourceNotFoundException.ResourceType.RANDOM_SIMULATION,
+                    attributeConfig.getString(EventSimulatorConstants.RANDOM_DATA_GENERATOR_TYPE),
+                    "Random attribute generator type is required for random " +
+                            "simulation. Generation type must be either '" +
+                            RandomAttributeGenerator.RandomDataGeneratorType.CUSTOM_DATA_BASED + "' or '" +
+                            RandomAttributeGenerator.RandomDataGeneratorType.PRIMITIVE_BASED + "' or '" +
+                            RandomAttributeGenerator.RandomDataGeneratorType.PROPERTY_BASED + "' or '" +
+                            RandomAttributeGenerator.RandomDataGeneratorType.REGEX_BASED + "'. Invalid attribute" +
+                            " configuration : " + attributeConfig.toString());
         }
     }
 
@@ -102,12 +109,15 @@ public class RandomAttrGeneratorFactoryImpl implements RandomAttrGeneratorFactor
                 type = RandomAttributeGenerator.RandomDataGeneratorType.valueOf(attributeConfig
                         .getString(EventSimulatorConstants.RANDOM_DATA_GENERATOR_TYPE));
             } catch (IllegalArgumentException e) {
-                throw new InvalidConfigException("Invalid random attribute generation type. Generator type must " +
-                        "be either '" + RandomAttributeGenerator.RandomDataGeneratorType.CUSTOM_DATA_BASED + "' or '"
-                        + RandomAttributeGenerator.RandomDataGeneratorType.PRIMITIVE_BASED + "' or '" +
-                        RandomAttributeGenerator.RandomDataGeneratorType.PROPERTY_BASED + "' or '" +
-                        RandomAttributeGenerator.RandomDataGeneratorType.REGEX_BASED + "'. Invalid attribute " +
-                        "configuration : " + attributeConfig.toString());
+                throw new InvalidConfigException(
+                        ResourceNotFoundException.ResourceType.RANDOM_SIMULATION,
+                        attributeConfig.getString(EventSimulatorConstants.RANDOM_DATA_GENERATOR_TYPE),
+                        "Invalid random attribute generation type. Generator type must " +
+                                "be either '" + RandomAttributeGenerator.RandomDataGeneratorType.CUSTOM_DATA_BASED + "' or '"
+                                + RandomAttributeGenerator.RandomDataGeneratorType.PRIMITIVE_BASED + "' or '" +
+                                RandomAttributeGenerator.RandomDataGeneratorType.PROPERTY_BASED + "' or '" +
+                                RandomAttributeGenerator.RandomDataGeneratorType.REGEX_BASED + "'. Invalid attribute " +
+                                "configuration : " + attributeConfig.toString());
             }
             switch (type) {
                 case CUSTOM_DATA_BASED:
@@ -124,13 +134,16 @@ public class RandomAttrGeneratorFactoryImpl implements RandomAttrGeneratorFactor
                     break;
             }
         } else {
-            throw new InvalidConfigException("Random attribute generator type is required for random " +
-                    "simulation. Generation type must be either '" +
-                    RandomAttributeGenerator.RandomDataGeneratorType.CUSTOM_DATA_BASED + "' or '" +
-                    RandomAttributeGenerator.RandomDataGeneratorType.PRIMITIVE_BASED + "' or '" +
-                    RandomAttributeGenerator.RandomDataGeneratorType.PROPERTY_BASED + "' or '" +
-                    RandomAttributeGenerator.RandomDataGeneratorType.REGEX_BASED + "'. Invalid attribute" +
-                    " configuration : " + attributeConfig.toString());
+            throw new InvalidConfigException(
+                    ResourceNotFoundException.ResourceType.RANDOM_SIMULATION,
+                    attributeConfig.getString(EventSimulatorConstants.RANDOM_DATA_GENERATOR_TYPE),
+                    "Random attribute generator type is required for random " +
+                            "simulation. Generation type must be either '" +
+                            RandomAttributeGenerator.RandomDataGeneratorType.CUSTOM_DATA_BASED + "' or '" +
+                            RandomAttributeGenerator.RandomDataGeneratorType.PRIMITIVE_BASED + "' or '" +
+                            RandomAttributeGenerator.RandomDataGeneratorType.PROPERTY_BASED + "' or '" +
+                            RandomAttributeGenerator.RandomDataGeneratorType.REGEX_BASED + "'. Invalid attribute" +
+                            " configuration : " + attributeConfig.toString());
         }
     }
 }
